@@ -1,0 +1,29 @@
+{
+  "environment": {
+    "cpus": 1,
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "memGB": 3.9,
+    "runtime": "bun 1.4.2",
+    "db": "PostgreSQL (see README: same host, in-process clients)"
+  },
+  "methodology": {
+    "wallets": 200,
+    "total": 6000,
+    "concurrency": 64,
+    "hotWalletShare": 0.2,
+    "mix": "50% BET / 25% WIN / 25% LOSS, 1.00 BRL, unique idempotency keys"
+  },
+  "throughputPerSec": 376.2,
+  "latencyMs": {
+    "p50": 136.67,
+    "p95": 363.98,
+    "p99": 494.67
+  },
+  "processed": 6000,
+  "rejected": 0,
+  "errorRate": 0,
+  "walletLockContention": 1127,
+  "outboxLagSeconds": 41,
+  "outboxPending": 10706,
+  "invariantViolations": 0
+}

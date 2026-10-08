@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: wagering, POSTGRES_PASSWORD: wagering, POSTGRES_DB: wagering }
+    ports: ["5432:5432"]
+    volumes: ["./infra/postgres-init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U wagering"], interval: 2s, timeout: 3s, retries: 20 }
+
+  localstack:
+    image: localstack/localstack:3.8
+    environment: { SERVICES: sqs, AWS_DEFAULT_REGION: us-east-1 }
+    ports: ["4566:4566"]
+    volumes: ["./infra/localstack-init.sh:/etc/localstack/init/ready.d/10-queues.sh:ro"]
+    healthcheck: { test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wager-events.fifo"], interval: 3s, timeout: 5s, retries: 30 }
+
+  migrate:
+    build: .
+    command: ["bun", "run", "migrate"]
+    environment: &app-env
+      DATABASE_URL: postgres://wagering:wagering@postgres:5432/wagering
+      SQS_ENDPOINT: http://localstack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    depends_on: { postgres: { condition: service_healthy } }
+
+  # Scale horizontally:  docker compose up -d --scale app=3   (see README; port range avoids clashes)
+  app:
+    build: .
+    environment: *app-env
+    ports: ["3000-3010:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      localstack: { condition: service_healthy }
+    stop_grace_period: 30s   # SIGTERM → drain in-flight SQS messages, then exit
